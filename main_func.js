@@ -1,3 +1,4 @@
+enchant();
 
 // 初期のセルの2次元配列を作成する
 function createCells(cells) {
@@ -43,120 +44,120 @@ var nextCells = function() {
 				}
 			}
 			// cellsを次のターンの盤面にする
-			if (liveCount == 3) {
-				// 誕生
+			if (liveCount == 3) { // 誕生
 				cells[x][y] = true;
-			} else if (liveCount == 2 || liveCount == 3) {
-				// 生存
-			} else if (liveCount <= 1) {
-				// 過疎
+			} else if (liveCount == 2 || liveCount == 3) { // 生存
+			} else if (liveCount <= 1) { // 過疎
 				cells[x][y] = false;
-			} else if (liveCount >= 4) {
-				// 過密
+			} else if (liveCount >= 4) { // 過密
 				cells[x][y] = false;
 			}
 		}
 	}
 }
 
-// 設定用シーンを作り、返す関数
-var createSettingScene = function() {
-	var scene = new Scene();
-	var label = new Label('スタート！');
-
-	label.addEventListener('click', function(e) {
-		console.log("くりっく");
-	})
-
-	label.y=BOARD_WIDTH_Y-20;
-	scene.addChild(label);
-	scene.backgroundColor = 'green';
-	scene.addEventListener(Event.TOUCH_START, function(e) {
-		//現在表示しているシーンをゲームシーンに置き換えます
-		game.replaceScene(createGameScene());
-	});
-
-	// ライフゲームの設定用盤面
-	var SettingBoard = Class.create(Sprite, {
-		initialize: function() {
-			Sprite.call(this, BOARD_WIDTH_X, BOARD_WIDTH_Y);
-			scene.backgroundColor = "pink";
-			this.x = 0;
-			this.y = 0;
-			// Surfaceオブジェクトを生成しスプライトに連結
-			var surface = new Surface(BOARD_WIDTH_X, BOARD_WIDTH_Y);
-			this.image = surface;
-
-			// 関数：1つのセルを描画
-			var drowCell = function(x, y, isLive) {
-				// 生死で色を変える
-				surface.context.fillStyle = isLive ? 'green' : 'red';
-				var W = CELL_WIDTH;
-				var d = 1;
-				surface.context.fillRect(x * W, y * W, W - d, W - d);
-			};
-
-			// 全てのセルを実際に描画する
-			for (var x = 0; x < CELL_NUM_X; ++x) {
-				for (var y = 0; y < CELL_NUM_Y; ++y) {
-					drowCell(x, y, cells[x][y]);
-				}
-			}
-
-			// 追加
-			scene.addChild(this);
-		}
-	});	// end of SettingBoard class.
-
-	var settingBoard = new SettingBoard();
-	return scene;
-}
-
 
 // ライフゲームを動かすシーンを作り、返す関数
 var createGameScene = function() {
 	var scene = new Scene();
-	// ライフゲームの盤面
-	var Board = Class.create(Sprite, {
-		initialize: function() {
-			Sprite.call(this, BOARD_WIDTH_X, BOARD_WIDTH_Y);
-			scene.backgroundColor = "pink";
-			this.x = 0;
-			this.y = 0;
-			// Surfaceオブジェクトを生成しスプライトに連結
-			var surface = new Surface(BOARD_WIDTH_X, BOARD_WIDTH_Y);
-			this.image = surface;
-			// fps毎に実行する関数
-			this.on('enterframe', function() {
-				// 関数：1つのセルを描画
-				var drowCell = function(x, y, isLive) {
-					// 生死で色を変える
-					surface.context.fillStyle = isLive ? 'green' : 'red';
-					var W = CELL_WIDTH;
-					var d = 1;
-					surface.context.fillRect(x * W, y * W, W - d, W - d);
-				};
-
-				// 全てのセルを実際に描画する
-				for (var x = 0; x < CELL_NUM_X; ++x) {
-					for (var y = 0; y < CELL_NUM_Y; ++y) {
-						drowCell(x, y, cells[x][y]);
-					}
-				}
-				// 次のステップにする
-				nextCells();
-			})
-			// 追加
-			scene.addChild(this);
-		}
-	});	// end of Board class.
-
 	scene.backgroundColor = 'yellow';
-	scene.addEventListener(Event.TOUCH_START, function(e) {
-		//現在表示しているシーンをゲームシーンに置き換えます
-		game.replaceScene(createSettingScene());
-	});
+	var board = new Board(scene);
 
-	var board = new Board();
+	// スタート・ストップボタン	
+	var startstopBtn = new Button("START",0,BOARD_HEIGHT,BUTTON_WIDTH,BUTTON_HEIGHT);
+	scene.addChild(startstopBtn);
+	startstopBtn.ontouchstart = function(){
+		console.log("クリック:START・STOP");
+		// フレーム毎にセルをすすめる
+		if(isRunning){
+			// 実行中のときは、停止する(ので表示はSTARTにする)
+			scene.onenterframe = null;
+			startstopBtn.text = "START";
+			isRunning = false;
+		}else{
+			// 停止中のときは、開始する(ので表示はSTOPにする)
+			scene.onenterframe = nextCells;
+			startstopBtn.text = "STOP";
+			isRunning = true;
+		}
+	}
+	// リセットボタン
+	var resetBtn = new Button("RESET",0,BOARD_HEIGHT+BUTTON_HEIGHT,BUTTON_WIDTH,BUTTON_HEIGHT);
+	scene.addChild(resetBtn);
+	resetBtn.ontouchstart = function(){
+		console.log("クリック:リセット");
+		cells = createCells();
+	}
 	return scene;
 }
+
+// ぼたんクラス
+var Button = Class.create(Label, {
+	initialize: function(str,x,y,w,h) {
+		Label.call(this, str);
+		this.x = x;
+		this.y = y;
+		this.width = w;
+		this.height = h;
+		this.font = "8px";
+		this.color = "red";
+		this.backgroundColor = "black";
+		this.textAlign = "center";
+	}
+})
+
+// セルが集まった盤面クラス
+var Board = Class.create(Sprite, {
+	initialize: function(parent_scene) {
+		Sprite.call(this, BOARD_WIDTH, BOARD_HEIGHT);
+		// セルを保持する二次元配列用
+		this.cellSpriteList = [];
+		// ライフゲームのセルを作る
+		for (var x = 0; x < CELL_NUM_X; ++x) {
+			this.cellSpriteList[x] = [];
+			for (var y = 0; y < CELL_NUM_Y; ++y) {
+				this.cellSpriteList[x][y] = new Cell(x, y, parent_scene);
+			}
+		}
+		//
+	},
+	draw: function() {
+		for (var x = 0; x < CELL_NUM_X; ++x) {
+			for (var y = 0; y < CELL_NUM_Y; ++y) {
+				this.cellSpriteList[x][y].draw();
+			}
+		}
+	}
+})
+
+// ライフゲームのセルのクラス
+var Cell = Class.create(Sprite, {
+	// x座標、y座標,親のシーン
+	initialize: function(pX, pY, parent_scene) {
+		Sprite.call(this, CELL_WIDTH, CELL_WIDTH);
+		// セルの位置
+		this.pX = pX;
+		this.pY = pY;
+		// 描画場所
+		this.x = CELL_WIDTH * pX;
+		this.y = CELL_WIDTH * pY;
+		// Surfaceオブジェクトを生成しスプライトに連結
+		var surface = new Surface(CELL_WIDTH, CELL_WIDTH);
+		this.image = surface;
+		// 追加
+		parent_scene.addChild(this);
+		// 毎フレーム再描画する
+		this.onenterframe = this.draw;
+
+		// クリック時はセルの生死を入れ替える
+		this.ontouchstart = function(){
+			cells[this.pX][this.pY] = !cells[this.pX][this.pY];
+			this.draw();
+		}
+	},
+	draw: function() {
+		// 生死で色を変えるて、描画する
+		this.image.context.fillStyle = cells[this.pX][this.pY] ? 'green' : 'red';
+		this.image.context.fillRect(0, 0, CELL_WIDTH - 1, CELL_WIDTH - 1);
+	}
+}); // end of Cell class.
